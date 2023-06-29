@@ -1,0 +1,16 @@
+PODS:
+  - LeavesDiagram (0.1.0)
+
+DEPENDENCIES:
+  - LeavesDiagram (from `../../`)
+
+EXTERNAL SOURCES:
+  LeavesDiagram:
+    :path: "../../"
+
+SPEC CHECKSUMS:
+  LeavesDiagram: f44792b0dc9db2f5825e29ae4a8ff51640c9addf
+
+PODFILE CHECKSUM: b6cb64df3af1c8b8e8904d4b0f47fa12a24ff5f7
+
+COCOAPODS: 1.12.1

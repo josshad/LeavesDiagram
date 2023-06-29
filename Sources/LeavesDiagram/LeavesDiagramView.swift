@@ -1,3 +1,6 @@
+//  Created by Danila Gusev on 09/10/22.
+//  Copyright © 2022 josshad. All rights reserved.
+
 import Foundation
 import UIKit
 
@@ -5,39 +8,83 @@ public protocol LeavesDiagramViewDelegate: AnyObject {
     func diagramView(_ diagramView: LeavesDiagramView, didTapOn index: Int)
 }
 
+/**
+ Datasource for LeavesDiagramView
+ */
 public protocol LeavesDiagramViewDataSource: AnyObject {
-    var numberOfLeavesForLeavesDiagramView: Int { get }
+    /**
+     Variable should return number of leaves for the diagram. It's called after reload()/reload(animated:) calls
+     */
+    var numberOfLeaves: Int { get }
+
+    /**
+     Color for a specific leaf. This variable called after reload()/reload(animated:) calls
+     */
     func colorForLeaf(at index: Int) -> UIColor
-    func percentForLeaf(at index: Int) -> Double
+
+    /**
+     Value for a specific leaf. Can be provided as a percentage or as a specific value.
+     */
+    func valueForLeaf(at index: Int) -> Double
 }
 
+/**
+ Custom diagram view that is able to present/reload its content with animation
+ */
 public final class LeavesDiagramView: UIView {
     typealias Model = LeafView.Model
 
+    public enum LeafSelectionStyle {
+        case none
+        case opacity(CGFloat)
+        case scale(CGFloat)
+
+        public static let scale: Self = .scale(Const.highlightedScale)
+        public static let opacity: Self = .opacity(Const.highlightedOpacity)
+    }
+
+    /**
+     Delegate to handle selection of leaf
+     */
     public weak var delegate: LeavesDiagramViewDelegate?
+
+    /**
+     Datasource to provide data to create diagram
+     */
     public weak var dataSource: LeavesDiagramViewDataSource?
+
+    /**
+     Defines type of animation when highlight leaf.
+     * opacity — changes alpha of the leaf (default — `0.95`)
+     * scale — scales leaf (default — `1.1`)
+     */
+    public var leafSelectionStyle: LeafSelectionStyle = .scale
 
     private enum Const {
         static let minRadiusRatio: CGFloat = 1.5
         static let leafIntersection: CGFloat = 0.02
+        static let highlightedOpacity: CGFloat = 0.95
+        static let highlightedScale: CGFloat = 1.1
     }
 
     private var leaves: [LeafView] = []
     private var prevBounds: CGRect = .zero
     private var prevReloadCancelled = false
     private let radius: CGFloat
-    private let snailFullAngle: CGFloat
+    private let fullAngle: CGFloat
+    private let strokeColor: UIColor?
 
-
-    public init(frame: CGRect, radius: CGFloat, snailFullAngle: CGFloat = .pi * 2) {
+    /**
+     - parameter radius: Maximum leaf radius. If not specified — than radius will be `min(height, width)/2`
+     - parameter fullAngle: Angle between first and last leaf. Default is 2π (360°) — full circle
+     - parameter strokeColor: Stroke color of each leaf. If not specified — same color as for leaf
+     */
+    public init(frame: CGRect, radius: CGFloat = .zero, fullAngle: CGFloat = .pi * 2, strokeColor: UIColor? = nil) {
         precondition(radius >= .zero)
         self.radius = radius
-        self.snailFullAngle = snailFullAngle
+        self.fullAngle = fullAngle
+        self.strokeColor = strokeColor
         super.init(frame: frame)
-    }
-
-    public override convenience init(frame: CGRect) {
-        self.init(frame: frame, radius: .zero)
     }
 
     @available(*, unavailable)
@@ -68,7 +115,7 @@ public final class LeavesDiagramView: UIView {
     }
 
     private func leafRadius(for rect: CGRect) -> CGFloat {
-        radius > .zero ? radius : CGRectGetMidX(bounds)
+        radius > .zero ? radius : (min(rect.width, rect.height) / 2)
     }
 
     private func updateLeavesRadius() {
@@ -84,7 +131,7 @@ public final class LeavesDiagramView: UIView {
     }
 
     // MARK: Reload data
-    public func reloadData(animated: Bool, completion: @escaping (Bool) -> Void) {
+    public func reloadData(animated: Bool, completion: @escaping (Bool) -> Void = { _ in }) {
         self.cancelAnimations()
         guard animated else {
             reloadData()
@@ -126,7 +173,7 @@ public final class LeavesDiagramView: UIView {
 
     private func createModels() -> [Model] {
         guard let dataSource = dataSource else { return [] }
-        let leavesCount = dataSource.numberOfLeavesForLeavesDiagramView
+        let leavesCount = dataSource.numberOfLeaves
         guard leavesCount > 0 else { return [] }
 
         var models: [Model] = []
@@ -134,13 +181,22 @@ public final class LeavesDiagramView: UIView {
         var radius = leafRadius(for: bounds)
         let minRadius = radius / Const.minRadiusRatio
         let radiusDelta = (radius - minRadius) / CGFloat(leavesCount)
+        let values = (0..<leavesCount).map { dataSource.valueForLeaf(at: $0) }
+        let fullSum = values.reduce(0, +)
+
         for i in 0..<leavesCount {
             let color = dataSource.colorForLeaf(at: i)
             let startAngle = max(0, angle - Const.leafIntersection);
-            let percent = dataSource.percentForLeaf(at: i)
-            angle += percent * CGFloat.pi * 2
+            let percent = values[i]/fullSum
+            angle += percent * fullAngle
             let endAngle = angle;
-            let model = Model(startAngle: startAngle, endAngle: endAngle, radius: radius, color: color)
+            let model = Model(
+                startAngle: startAngle,
+                endAngle: endAngle,
+                radius: radius,
+                color: color,
+                strokeColor: strokeColor
+            )
             radius = max(minRadius, radius - radiusDelta);
             models.append(model)
         }
@@ -149,7 +205,7 @@ public final class LeavesDiagramView: UIView {
 
     private func createLeafSubview(with model: Model) -> LeafView {
         let leaf = LeafView(frame: frame, model: model)
-
+        leaf.selectionStyle = leafSelectionStyle.leafStyle
         leaf.addTarget(self, action: #selector(didTapOnLeaf), for: .touchUpInside)
         return leaf;
     }
@@ -182,11 +238,14 @@ private extension LeavesDiagramView {
         for leaf in leaves {
             let endKey = #keyPath(LeafLayer.endAngle)
             let endAnimation = wrapAnimation(for: leaf, with: endKey)
-            leaf.leafLayer.add(endAnimation, forKey: endKey)
 
             let startKey = #keyPath(LeafLayer.startAngle)
             let startAnimation = wrapAnimation(for: leaf, with: startKey)
-            leaf.leafLayer.add(startAnimation, forKey: startKey)
+
+            let angleAnimation = CAAnimationGroup()
+            angleAnimation.animations = [endAnimation, startAnimation]
+            leaf.leafLayer.add(angleAnimation, forKey: endKey)
+
             leaf.endAngle = 0;
             leaf.startAngle = 0;
         }
@@ -211,11 +270,17 @@ private extension LeavesDiagramView {
 
             let endKey = #keyPath(LeafLayer.endAngle)
             let endAnimation = unwrapAnimation(for: leaf, with: endKey)
-            leaf.leafLayer.add(endAnimation, forKey: endKey)
 
             let startKey = #keyPath(LeafLayer.startAngle)
             let startAnimation = unwrapAnimation(for: leaf, with: startKey)
-            leaf.leafLayer.add(startAnimation, forKey: startKey)
+
+            let angleAnimation = CAAnimationGroup()
+            angleAnimation.animations = [endAnimation, startAnimation]
+            if #available(iOS 15, *) {
+                angleAnimation.preferredFrameRateRange = .init(minimum: 0, maximum: 0, preferred: nil)
+            }
+
+            leaf.leafLayer.add(angleAnimation, forKey: endKey)
 
             leaves.append(leaf)
         }
@@ -239,4 +304,14 @@ private extension LeavesDiagramView {
         return animation;
     }
 
+}
+
+private extension LeavesDiagramView.LeafSelectionStyle {
+    var leafStyle: LeafView.SelectionStyle {
+        switch self {
+        case .none: return .identity
+        case .opacity(let opacity): return .opacity(opacity)
+        case .scale(let scale): return .scale(scale)
+        }
+    }
 }

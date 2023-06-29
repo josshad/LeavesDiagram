@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "leavesdiagram",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:josshad/LeavesDiagram.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "eb285fd380814053236199f6586c0d6b7acf18a1"
+      }
+    }
+  ],
+  "version" : 2
+}

@@ -1,3 +1,6 @@
+//  Created by Danila Gusev on 09/10/22.
+//  Copyright © 2022 josshad. All rights reserved.
+
 import Foundation
 import QuartzCore
 import UIKit
@@ -8,32 +11,42 @@ final class LeafLayer: CALayer {
         static let cornerCoef: CGFloat = 0.4
     }
     var color: UIColor
+    var strokeColor: UIColor
     @NSManaged var startAngle: CGFloat
     @NSManaged var endAngle: CGFloat
     @objc var radius: CGFloat
 
-    init(color: UIColor, startAngle: CGFloat, endAngle: CGFloat, radius: CGFloat) {
+    init(color: UIColor, strokeColor: UIColor? = nil, startAngle: CGFloat, endAngle: CGFloat, radius: CGFloat) {
         self.color = color
         self.radius = radius
+        self.strokeColor = strokeColor ?? color
         super.init()
         self.startAngle = startAngle
         self.endAngle = endAngle
-        self.contentsScale = UIScreen.main.scale
+        contentsScale = UIScreen.main.scale
+        shouldRasterize = true
+        rasterizationScale = contentsScale
+        drawsAsynchronously = true
     }
 
     override init(layer: Any) {
         guard let layer = layer as? LeafLayer else {
-            self.color = .clear
-            self.radius = 0
+            color = .clear
+            strokeColor = .clear
+            radius = 0
             super.init(layer: layer)
             return
         }
-        self.color = layer.color
-        self.radius = layer.radius
+        color = layer.color
+        strokeColor = layer.strokeColor
+        radius = layer.radius
         super.init(layer: layer)
-        self.startAngle = layer.startAngle
-        self.endAngle = layer.endAngle
-        self.contentsScale = UIScreen.main.scale
+        startAngle = layer.startAngle
+        endAngle = layer.endAngle
+        contentsScale = UIScreen.main.scale
+        shouldRasterize = true
+        rasterizationScale = contentsScale
+        drawsAsynchronously = true
     }
 
     @available(*, unavailable)
@@ -55,16 +68,15 @@ final class LeafLayer: CALayer {
             return
         }
 
-        ctx.setShouldAntialias(true)
         ctx.setFillColor(color.cgColor)
-
+        ctx.setStrokeColor(strokeColor.cgColor)
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let midAngle = (endAngle + startAngle) / 2
         var cornerRadius = Const.cornerRadius
 
-        if endAngle - startAngle >= 2 * CGFloat.pi {
+        if endAngle - startAngle >= CGFloat2PI {
             cornerRadius = 0
-        } else if endAngle - startAngle < CGFloat.pi / 2 {
+        } else if endAngle - startAngle < CGFloatPI_2 {
             let d = max(0, floor(sin(endAngle - startAngle) * radius * Const.cornerCoef))
             cornerRadius = min(cornerRadius, d)
         }
@@ -79,27 +91,21 @@ final class LeafLayer: CALayer {
         let secondPoint = CGPoint(x: center.x + guidingRadius * sin(endAngle), y: center.y - guidingRadius * cos(endAngle))
         let middlePoint = CGPoint(x: center.x + radius * sin(midAngle), y: center.y - radius * cos(midAngle))
 
+        let t2Point = CGPoint(x: center.x + radius * sin(startAngle + dAngle), y: center.y - radius * cos(startAngle + dAngle))
+        ctx.move(to: center)
+        ctx.addArc(tangent1End: firstPoint, tangent2End: t2Point, radius: cornerRadius)
+
         if tooSmallAngle {
             ctx.move(to: middlePoint)
         } else {
-            let sAngle = midAngle - (CGFloat.pi / 2)
-            let eAngle = startAngle + dAngle - (CGFloat.pi / 2)
-            ctx.move(to: middlePoint)
+            let sAngle = startAngle + dAngle - CGFloatPI_2
+            let eAngle = endAngle - dAngle - CGFloatPI_2
             ctx.addArc(center: center, radius: radius, startAngle: sAngle, endAngle: eAngle, clockwise: false)
-        }
-        ctx.addArc(tangent1End: firstPoint, tangent2End: center, radius: cornerRadius)
-        ctx.addLine(to: center)
-        if tooSmallAngle {
-            ctx.move(to: middlePoint)
-        } else {
-            ctx.move(to: middlePoint)
-            let sAngle = midAngle - (CGFloat.pi / 2)
-            let eAngle = self.endAngle - dAngle - (CGFloat.pi / 2)
-            ctx.addArc(center: center, radius: radius, startAngle: sAngle, endAngle: eAngle, clockwise: true)
         }
         ctx.addArc(tangent1End: secondPoint, tangent2End: center, radius: cornerRadius)
         ctx.addLine(to: center)
-        ctx.fillPath()
+        ctx.closePath()
+        ctx.drawPath(using: .fillStroke)
     }
 }
 
