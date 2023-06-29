@@ -1,0 +1,22 @@
+{
+  "name": "LeavesDiagram",
+  "version": "0.1.0",
+  "summary": "Custom pie chart diagram",
+  "description": "Animated pie diagram component",
+  "homepage": "https://github.com/josshad/LeavesDiagram",
+  "license": {
+    "type": "MIT",
+    "file": "LICENSE"
+  },
+  "authors": {
+    "Danila Gusev": "josshad@gmail.com"
+  },
+  "source": {
+    "git": "git@github.com:josshad/LeavesDiagram.git",
+    "tag": "0.1.0"
+  },
+  "platforms": {
+    "ios": "13.0"
+  },
+  "source_files": "Sources/**/*"
+}

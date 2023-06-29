@@ -1,15 +1,29 @@
+//  Created by Danila Gusev on 09/10/22.
+//  Copyright © 2022 josshad. All rights reserved.
+
 import Foundation
 import UIKit
 
 final class LeafView: UIControl {
-    private enum Const {
-        static let highlightedAlpha: CGFloat = 0.95
+    enum SelectionStyle {
+        case identity
+        case opacity(CGFloat)
+        case scale(CGFloat)
     }
-    private var _leafLayer: LeafLayer
 
-    init(frame: CGRect, color: UIColor, startAngle: CGFloat, endAngle: CGFloat, radius: CGFloat) {
+    private var _leafLayer: LeafLayer
+    var selectionStyle: SelectionStyle = .identity
+
+    init(
+        frame: CGRect,
+        color: UIColor,
+        strokeColor: UIColor? = nil,
+        startAngle: CGFloat,
+        endAngle: CGFloat,
+        radius: CGFloat
+    ) {
         precondition(radius >= .zero)
-        _leafLayer = LeafLayer(color: color, startAngle: startAngle, endAngle: endAngle, radius: radius)
+        _leafLayer = LeafLayer(color: color, strokeColor: strokeColor, startAngle: startAngle, endAngle: endAngle, radius: radius)
         super.init(frame: frame)
         layer.addSublayer(_leafLayer)
     }
@@ -32,7 +46,8 @@ final class LeafView: UIControl {
     // MARK: Layout
     override func layoutSubviews() {
         super.layoutSubviews()
-        _leafLayer.frame = bounds
+        _leafLayer.position = center
+        _leafLayer.bounds = bounds
     }
 
     // MARK: Accessors & Mutators
@@ -42,6 +57,15 @@ final class LeafView: UIControl {
         }
         set {
             _leafLayer.color = newValue
+        }
+    }
+
+    var strokeColor: UIColor {
+        get {
+            _leafLayer.strokeColor
+        }
+        set {
+            _leafLayer.strokeColor = newValue
         }
     }
 
@@ -82,7 +106,18 @@ final class LeafView: UIControl {
         }
         set {
             super.isHighlighted = newValue
-            self.alpha = newValue ? Const.highlightedAlpha : 1
+            handleHighlighted(newValue)
+        }
+    }
+
+    private func handleHighlighted(_ highlighted: Bool) {
+        switch selectionStyle {
+        case .identity:
+            break
+        case .opacity(let opacity):
+            alpha = highlighted ? opacity : 1
+        case .scale(let scale):
+            leafLayer.setAffineTransform(highlighted ? .init(scaleX: scale, y: scale) : .identity)
         }
     }
 
@@ -97,9 +132,9 @@ final class LeafView: UIControl {
             var angle: CGFloat = 0
             if !CGFloatEqual(y, 0) {
                 angle = atan2(x, y)
-                angle = angle < 0 ? angle + CGFloat.pi * 2 : angle
+                angle = angle < 0 ? angle + CGFloat2PI : angle
             } else {
-                angle = x > 0 ? CGFloat.pi/2 : 3 * CGFloat.pi/2
+                angle = x > 0 ? CGFloatPI_2 : 3 * CGFloatPI_2
             }
             if isAngleInside(angle: angle, start: startAngle, end: endAngle) {
                 return self
@@ -115,10 +150,18 @@ extension LeafView {
         let endAngle: CGFloat
         let radius: CGFloat
         let color: UIColor
+        let strokeColor: UIColor?
     }
 
     convenience init(frame: CGRect, model: Model) {
-        self.init(frame: frame, color: model.color, startAngle: model.startAngle, endAngle: model.endAngle, radius: model.radius)
+        self.init(
+            frame: frame,
+            color: model.color,
+            strokeColor: model.strokeColor,
+            startAngle: model.startAngle,
+            endAngle: model.endAngle,
+            radius: model.radius
+        )
     }
 }
 

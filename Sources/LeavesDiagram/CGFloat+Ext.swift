@@ -1,4 +1,10 @@
+//  Created by Danila Gusev on 09/10/22.
+//  Copyright © 2022 josshad. All rights reserved.
+
 import Foundation
+
+let CGFloat2PI = 2 * CGFloat.pi
+let CGFloatPI_2 = CGFloat.pi / 2
 
 func CGFloatCompare(_ l: CGFloat, _ r: CGFloat, _ eps: CGFloat) -> ComparisonResult {
     if abs(l - r) <= eps {
@@ -19,10 +25,9 @@ func CGFloatEqual(_ l: CGFloat, _ r: CGFloat) -> Bool {
 }
 
 func CGFloatNormalizedAngle(_ val: CGFloat) -> CGFloat {
-    let pix2 = CGFloat.pi * 2
-    if CGFloatCompare(val, pix2) == .orderedAscending {
+    if CGFloatCompare(val, CGFloat2PI) == .orderedAscending {
         return val
     }
 
-    return val - floor(val / pix2) * pix2;
+    return val - floor(val / CGFloat2PI) * CGFloat2PI;
 }
