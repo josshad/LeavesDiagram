@@ -1,6 +1,8 @@
 # LeavesDiagram
 <img src="https://josshad.github.io/LeavesDiagram/reloading.gif">
 
+Custom animated pie chart component
+
 ## Installation
 ### Swift PM
 Add package dependency to the your xcode project or package file
