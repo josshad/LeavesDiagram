@@ -10,7 +10,7 @@ Add package dependency to the your xcode project or package file
 Package.swift:
 ```swift
 dependencies: [
-    .package(url: "git@github.com:josshad/LeavesDiagram.git", "0.0.0"..."0.1.0")
+    .package(url: "git@github.com:josshad/LeavesDiagram.git", "0.0.0"..."0.2.0")
  ]
 ```
 
