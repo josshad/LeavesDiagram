@@ -19,8 +19,8 @@ class ViewController: UIViewController {
     private var colors: [UIColor] = []
 
     lazy var diagramView: LeavesDiagramView = {
-        let view = LeavesDiagramView(frame: .zero, radius: Const.diagramRadius)
-        view.leafSelectionStyle = .scale(0.9)
+        let view = LeavesDiagramView(frame: .zero, radius: Const.diagramRadius, strokeColor: .white)
+        view.leafSelectionStyle = .scale(1.05)
         view.delegate = self
         view.dataSource = self
         return view

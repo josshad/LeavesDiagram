@@ -183,7 +183,8 @@ public final class LeavesDiagramView: UIView {
         let radiusDelta = (radius - minRadius) / CGFloat(leavesCount)
         let values = (0..<leavesCount).map { dataSource.valueForLeaf(at: $0) }
         let fullSum = values.reduce(0, +)
-
+        guard fullSum > 0 else { return [] }
+        
         for i in 0..<leavesCount {
             let color = dataSource.colorForLeaf(at: i)
             let startAngle = max(0, angle - Const.leafIntersection);

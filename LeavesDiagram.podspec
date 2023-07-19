@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'LeavesDiagram'
-  s.version          = '0.2'
+  s.version          = '0.2.0'
   s.summary          = 'Custom pie chart diagram'
   s.swift_versions   = '5.0'
 
